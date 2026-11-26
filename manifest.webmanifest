@@ -1,0 +1,9 @@
+{
+  "name": "Presensi Generus SS1",
+  "short_name": "Presensi SS1",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f4",
+  "theme_color": "#174b3a",
+  "icons": []
+}
