@@ -207,7 +207,7 @@ $("saveAttendance").onclick=async()=>{
  }catch(e){$("syncMsg").textContent="Gagal menyimpan: "+friendly(e)}
  finally{$("saveAttendance").disabled=false}
 };
-$($("addStudent").onclick=async()=>{
+$("addStudent").onclick=async()=>{
  if(!isAdmin())return;
 
  const name=$("studentName").value.trim();
