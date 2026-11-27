@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="id">
 <head>
@@ -12,9 +13,11 @@
 header h1{font-size:20px;margin:0 0 4px}header p{margin:0;font-size:13px;opacity:.9}
 main{max-width:900px;margin:auto;padding:16px}.panel{background:white;border:1px solid #dce6df;border-radius:14px;padding:16px;margin:0 0 14px;box-shadow:0 2px 8px #102a1a0b}
 h2{font-size:17px;margin:0 0 12px}label{display:block;font-size:13px;font-weight:650;margin:10px 0 5px}
-input,select,button{font:inherit}input,select{width:100%;padding:11px;border:1px solid #cbd8cf;border-radius:9px;background:white}
+input,select,button,textarea{font:inherit}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd8cf;border-radius:9px;background:white}
+textarea{min-height:85px;resize:vertical}
 button{border:0;border-radius:9px;padding:11px 14px;background:#176447;color:white;font-weight:650;cursor:pointer}
 button.secondary{background:#e8f0eb;color:#174b3a}button.danger{background:#a63838}
+button:disabled{opacity:.6;cursor:wait}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>*{flex:1;min-width:130px}
 .small{font-size:12px;color:#5b6c61}.muted{color:#607067}.hidden{display:none!important}
 .notice{padding:10px 12px;border-radius:9px;background:#eef5f0;color:#244b36;font-size:13px;margin:10px 0}
@@ -23,12 +26,17 @@ button.secondary{background:#e8f0eb;color:#174b3a}button.danger{background:#a638
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #e5ece7;vertical-align:middle}
 td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inline-block;padding:3px 7px;border-radius:20px;background:#edf3ef;font-size:11px}
 #status{white-space:pre-wrap}.right{margin-left:auto}
-@media(max-width:560px){main{padding:10px}.panel{padding:13px}table{font-size:12px}td select{min-width:95px}}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.summary div{background:#eef5f0;padding:12px;border-radius:10px}
+.summary strong{display:block;font-size:20px;color:#174b3a}
+.report-item{padding:12px 0;border-bottom:1px solid #e5ece7}
+@media(max-width:560px){main{padding:10px}.panel{padding:13px}table{font-size:12px}td select{min-width:95px}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
 <header><h1>PRESENSI GENERUS SS1</h1><p>Presensi kelas • Data tersimpan di Firebase</p></header>
 <main>
+
 <section id="loginPanel" class="panel">
 <h2>Masuk</h2>
 <p class="small">Gunakan akun yang sudah dibuat oleh admin. Pendaftaran umum tidak tersedia.</p>
@@ -43,11 +51,14 @@ td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inli
 <div class="row"><div><strong id="welcome"></strong><div class="small" id="roleInfo"></div></div><button id="logoutBtn" class="secondary right">Keluar</button></div>
 <div id="syncMsg" class="notice">Menghubungkan ke database…</div>
 </div>
+
 <div class="tabs">
 <button class="active" data-tab="attendanceTab">Presensi</button>
 <button data-tab="studentsTab" id="studentsTabBtn">Data santri</button>
 <button data-tab="teachersTab" id="teachersTabBtn">Akun guru</button>
+<button data-tab="reportsTab">Laporan bulanan</button>
 </div>
+
 <section id="attendanceTab" class="panel">
 <h2>Presensi harian</h2>
 <div class="row">
@@ -58,36 +69,100 @@ td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inli
 <div id="attendanceArea" class="small">Pilih kelas untuk melihat daftar santri.</div>
 <button id="saveAttendance" style="margin-top:12px">Simpan presensi</button>
 </section>
+
 <section id="studentsTab" class="panel hidden">
 <h2>Data santri</h2>
 <div id="studentAdminOnly" class="hidden">
-<label>Nama santri</label>
-<input id="studentName" placeholder="Nama lengkap">
-
+<label>Nama santri</label><input id="studentName" placeholder="Nama lengkap">
 <label>Jenis kelamin</label>
 <select id="studentGender">
 <option value="">Pilih jenis kelamin</option>
 <option value="L">Laki-laki</option>
 <option value="P">Perempuan</option>
 </select>
-
-<label>Kelas asal</label>
-<select id="studentClass"></select>
-
+<label>Kelas asal</label><select id="studentClass"></select>
 <button id="addStudent" style="margin-top:12px">Tambah santri</button>
 </div>
 <div id="studentsList" class="small" style="margin-top:12px">Pilih kelas pada tab Presensi untuk melihat data.</div>
 </section>
+
 <section id="teachersTab" class="panel hidden">
 <h2>Penugasan akun guru</h2>
-<p class="small">Buat akun guru lebih dahulu di Firebase Authentication → Users → Add user. Setelah itu masukkan UID akun tersebut di sini. Guru tidak bisa membuat akun sendiri.</p>
+<p class="small">Buat akun guru lebih dahulu di Firebase Authentication → Users → Add user. Setelah itu masukkan UID akun tersebut di sini.</p>
 <label>UID akun guru</label><input id="teacherUid" placeholder="Tempel UID dari Authentication">
 <label>Email guru (untuk keterangan)</label><input id="teacherEmail" type="email" placeholder="guru@email.com">
-<label>Kelas yang boleh diakses</label>
-<div id="teacherClasses" class="small"></div>
+<label>Kelas yang boleh diakses</label><div id="teacherClasses" class="small"></div>
 <button id="assignTeacher" style="margin-top:12px">Simpan penugasan guru</button>
 <div id="teacherMsg" class="notice hidden"></div>
 </section>
+
+<section id="reportsTab" class="panel hidden">
+<h2>Laporan bulanan guru</h2>
+<p class="small">Pilih bulan dan kelas. Data jumlah santri dan kehadiran dihitung otomatis dari database presensi.</p>
+
+<div class="row">
+<div><label>Bulan laporan</label><input id="reportMonth" type="month"></div>
+<div><label>Kelas laporan</label><select id="reportClass"></select></div>
+</div>
+
+<div class="notice" id="reportTeacher">Nama guru akan ditampilkan di sini.</div>
+<div class="summary">
+<div><span class="small">Santri laki-laki</span><strong id="maleTotal">0</strong></div>
+<div><span class="small">Santri perempuan</span><strong id="femaleTotal">0</strong></div>
+<div><span class="small">Jumlah santri</span><strong id="studentTotal">0</strong></div>
+<div><span class="small">Hadir</span><strong id="presentTotal">0</strong></div>
+<div><span class="small">Seluruh catatan</span><strong id="recordTotal">0</strong></div>
+<div><span class="small">Kehadiran</span><strong id="attendancePercent">0%</strong></div>
+</div>
+<div class="small" id="reportNames">Nama santri akan muncul di sini.</div>
+
+<hr style="border:0;border-top:1px solid #e5ece7;margin:18px 0">
+<h2>Materi pembelajaran</h2>
+
+<label>Menulis dan makna</label>
+<textarea id="materialWriting" placeholder="Tuliskan materi menulis dan makna yang disampaikan"></textarea>
+
+<label>Bacaan</label>
+<textarea id="materialReading" placeholder="Tuliskan materi bacaan yang disampaikan"></textarea>
+
+<label>Hafalan surat</label>
+<textarea id="materialSurah" placeholder="Tuliskan surat yang dihafalkan"></textarea>
+
+<label>Hafalan doa</label>
+<textarea id="materialPrayer" placeholder="Tuliskan doa yang dihafalkan"></textarea>
+
+<label>Hafalan dalil</label>
+<textarea id="materialDalil" placeholder="Tuliskan dalil yang dihafalkan"></textarea>
+
+<label>Materi lainnya</label>
+<textarea id="materialOther" placeholder="Contoh: 29 karakter, praktik sholat, dan materi lainnya"></textarea>
+
+<label>Pencapaian materi (%)</label>
+<input id="materialPercent" type="number" min="0" max="100" placeholder="Contoh: 80">
+
+<label>Status MID semester</label>
+<select id="midStatus">
+<option value="Belum">Belum</option>
+<option value="Sudah">Sudah</option>
+</select>
+
+<label>Status laporan di link</label>
+<select id="linkStatus">
+<option value="Belum">Belum</option>
+<option value="Sudah">Sudah</option>
+</select>
+
+<label>Kendala selama mengajar</label>
+<textarea id="reportProblem" placeholder="Tuliskan kendala, jika ada"></textarea>
+
+<button id="saveReport" style="margin-top:14px">Simpan laporan bulanan</button>
+<div id="reportMsg" class="notice hidden"></div>
+
+<hr style="border:0;border-top:1px solid #e5ece7;margin:18px 0">
+<h2>Daftar laporan tersimpan</h2>
+<div id="reportsList" class="small">Memuat laporan…</div>
+</section>
+
 </section>
 <div id="status" class="small"></div>
 </main>
@@ -95,7 +170,7 @@ td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inli
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, addDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCiw4ega9_tu1ts9yAcS4kVIBfdGG6NoRI",
@@ -117,93 +192,83 @@ const auth = getAuth(app);
 const db = initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
 
 let currentUser=null, profile=null, currentStudents=[], attendanceState={};
+let reportStats={students:[],male:0,female:0,present:0,records:0,percent:0};
 const $ = id => document.getElementById(id);
 const className = id => classes.find(c=>c[0]===id)?.[1] || id;
 const isAdmin = () => profile?.role === "admin";
+const queryClassIds = selected => selected==="muda-mudi"?combined:[selected];
 
 function msg(el,text,error=false){
 el.textContent=text;
 el.classList.remove("hidden");
 el.classList.toggle("error",error);
 }
-
-function fillClasses(sel, includeCombined=true){
+function fillClasses(sel,includeCombined=true){
 sel.innerHTML="";
-classes.filter(c=>includeCombined || c[0]!=="muda-mudi").forEach(([id,name])=>{
-let o=document.createElement("option");
-o.value=id;
-o.textContent=name;
-sel.append(o);
+classes.filter(c=>includeCombined||c[0]!=="muda-mudi").forEach(([id,name])=>{
+let o=document.createElement("option");o.value=id;o.textContent=name;sel.append(o);
 });
+}
+function localDate(){
+const d=new Date();
+return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function currentMonth(){
+return localDate().slice(0,7);
 }
 
 fillClasses($("attClass"));
 fillClasses($("studentClass"),false);
-$("attDate").value=new Date().toLocaleDateString("en-CA");
+$("attDate").value=localDate();
+$("reportMonth").value=currentMonth();
 
 $("loginBtn").onclick=async()=>{
-try{
-await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
-}catch(e){
-msg($("loginMsg"),"Gagal masuk: "+friendly(e),true);
-}
+try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);}
+catch(e){msg($("loginMsg"),"Gagal masuk: "+friendly(e),true);}
 };
-
 $("logoutBtn").onclick=()=>signOut(auth);
 
 function friendly(e){
 return e?.code==="auth/invalid-credential"?"Email atau kata sandi tidak sesuai.":e?.message||"Terjadi kesalahan.";
 }
 
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=async()=>{
 document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));
-["attendanceTab","studentsTab","teachersTab"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab));
-if(b.dataset.tab==="studentsTab") loadAttendance();
+["attendanceTab","studentsTab","teachersTab","reportsTab"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab));
+if(b.dataset.tab==="studentsTab")await loadAttendance();
+if(b.dataset.tab==="reportsTab"){await loadReportData();await loadReportsList();}
 });
 
 onAuthStateChanged(auth,async user=>{
-currentUser=user;
-profile=null;
-
+currentUser=user;profile=null;
 if(!user){
-$("loginPanel").classList.remove("hidden");
-$("appPanel").classList.add("hidden");
-return;
+$("loginPanel").classList.remove("hidden");$("appPanel").classList.add("hidden");return;
 }
-
 try{
 const snap=await getDoc(doc(db,"users",user.uid));
 if(!snap.exists()){
-await signOut(auth);
-msg($("loginMsg"),"Profil akun belum dibuat oleh admin. Hubungi admin.",true);
-return;
+await signOut(auth);msg($("loginMsg"),"Profil akun belum dibuat oleh admin. Hubungi admin.",true);return;
 }
-
 profile=snap.data();
-$("loginPanel").classList.add("hidden");
-$("appPanel").classList.remove("hidden");
+$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");
 $("welcome").textContent=profile.name||user.email||"Pengguna";
-$("roleInfo").textContent=profile.role==="admin"?"Administrator":"Guru";
+$("roleInfo").textContent=isAdmin()?"Administrator":"Guru";
 $("teachersTabBtn").classList.toggle("hidden",!isAdmin());
 $("studentsTabBtn").classList.toggle("hidden",!isAdmin());
 $("studentAdminOnly").classList.toggle("hidden",!isAdmin());
 
 const allowed=profile.classes||[];
 $("attClass").innerHTML="";
+$("reportClass").innerHTML="";
 classes.filter(([id])=>isAdmin()||allowed.includes(id)).forEach(([id,name])=>{
-let o=document.createElement("option");
-o.value=id;
-o.textContent=name;
-$("attClass").append(o);
+let a=document.createElement("option");a.value=id;a.textContent=name;$("attClass").append(a);
+let r=document.createElement("option");r.value=id;r.textContent=name;$("reportClass").append(r);
 });
-
 $("attHint").textContent=isAdmin()?"Admin dapat memilih semua kelas.":"Akses kelas Anda: "+allowed.map(className).join(", ");
-$("syncMsg").textContent=navigator.onLine?"Terhubung. Perubahan akan disinkronkan ke Firebase.":"Sedang offline. Perubahan tersimpan di perangkat dan akan disinkronkan saat online.";
+$("reportTeacher").textContent="Nama guru: "+(profile.name||user.email||"Pengguna");
+$("syncMsg").textContent=navigator.onLine?"Terhubung. Perubahan akan disinkronkan ke Firebase.":"Sedang offline.";
 await loadAttendance();
-
-}catch(e){
-msg($("status"),"Tidak dapat membaca profil atau database: "+friendly(e),true);
-}
+}catch(e){msg($("status"),"Tidak dapat membaca profil atau database: "+friendly(e),true);}
 });
 
 window.addEventListener("online",()=>{$("syncMsg").textContent="Internet tersambung. Data lokal sedang disinkronkan."});
@@ -211,47 +276,31 @@ window.addEventListener("offline",()=>{$("syncMsg").textContent="Offline. Data t
 
 $("attClass").onchange=loadAttendance;
 $("attDate").onchange=loadAttendance;
-
-function queryClassIds(selected){
-return selected==="muda-mudi"?combined:[selected];
-}
+$("reportClass").onchange=loadReportData;
+$("reportMonth").onchange=loadReportData;
 
 async function loadAttendance(){
 if(!currentUser||!profile)return;
-
 const selected=$("attClass").value;
-if(!selected){
-$("attendanceArea").textContent="Belum ada kelas yang ditugaskan.";
-return;
-}
-
+if(!selected){$("attendanceArea").textContent="Belum ada kelas yang ditugaskan.";return;}
 try{
 const ids=queryClassIds(selected);
 const q=query(collection(db,"students"),where("classId","in",ids));
 const snap=await getDocs(q);
-
-currentStudents=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name,"id"));
-
+currentStudents=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||"").localeCompare(b.name||"","id"));
 const date=$("attDate").value;
 attendanceState={};
-
 if(currentStudents.length){
 for(const classId of ids){
 const aq=query(collection(db,"attendance"),where("classId","==",classId));
 const as=await getDocs(aq);
-as.forEach(d=>{
-const a=d.data();
-if(a.date===date)attendanceState[a.studentId]=a.status;
-});
+as.forEach(d=>{const a=d.data();if(a.date===date)attendanceState[a.studentId]=a.status;});
 }
 }
-
 renderAttendance();
-
 $("studentsList").textContent=currentStudents.length
 ?currentStudents.map(s=>s.name+" — "+(s.gender==="L"?"Laki-laki":s.gender==="P"?"Perempuan":"Belum diisi")+" — "+className(s.classId)).join("\n")
 :"Belum ada data santri pada kelas ini.";
-
 }catch(e){
 $("attendanceArea").textContent="Gagal memuat data: "+friendly(e);
 $("syncMsg").textContent="Periksa koneksi dan Rules Firestore.";
@@ -260,128 +309,48 @@ $("syncMsg").textContent="Periksa koneksi dan Rules Firestore.";
 
 function renderAttendance(){
 if(!currentStudents.length){
-$("attendanceArea").textContent="Belum ada santri di kelas ini. Admin dapat menambahkan melalui tab Data santri.";
-return;
+$("attendanceArea").textContent="Belum ada santri di kelas ini. Admin dapat menambahkan melalui tab Data santri.";return;
 }
-
-const table=document.createElement("table");
-const head=document.createElement("tr");
-
-["Nama","Kelas asal","Kehadiran"].forEach(t=>{
-let th=document.createElement("th");
-th.textContent=t;
-head.append(th);
-});
-
-const thead=document.createElement("thead");
-thead.append(head);
-table.append(thead);
-
+const table=document.createElement("table"),head=document.createElement("tr");
+["Nama","Kelas asal","Kehadiran"].forEach(t=>{let th=document.createElement("th");th.textContent=t;head.append(th);});
+const thead=document.createElement("thead");thead.append(head);table.append(thead);
 const body=document.createElement("tbody");
-
 currentStudents.forEach(s=>{
 const tr=document.createElement("tr");
-
-[s.name,className(s.classId)].forEach(v=>{
-let td=document.createElement("td");
-td.textContent=v;
-tr.append(td);
+[s.name,className(s.classId)].forEach(v=>{let td=document.createElement("td");td.textContent=v;tr.append(td);});
+const td=document.createElement("td"),sel=document.createElement("select");
+[["H","Hadir"],["I","Izin"],["S","Sakit"],["A","Tidak hadir"]].forEach(([v,n])=>{let o=document.createElement("option");o.value=v;o.textContent=n;sel.append(o);});
+sel.value=attendanceState[s.id]||"H";sel.onchange=()=>attendanceState[s.id]=sel.value;td.append(sel);tr.append(td);body.append(tr);
 });
-
-const td=document.createElement("td");
-const sel=document.createElement("select");
-
-[["H","Hadir"],["I","Izin"],["S","Sakit"],["A","Tidak hadir"]].forEach(([v,n])=>{
-let o=document.createElement("option");
-o.value=v;
-o.textContent=n;
-sel.append(o);
-});
-
-sel.value=attendanceState[s.id]||"H";
-sel.onchange=()=>attendanceState[s.id]=sel.value;
-td.append(sel);
-tr.append(td);
-body.append(tr);
-});
-
-table.append(body);
-$("attendanceArea").replaceChildren(table);
+table.append(body);$("attendanceArea").replaceChildren(table);
 }
 
 $("saveAttendance").onclick=async()=>{
 if(!currentStudents.length)return;
-
 $("saveAttendance").disabled=true;
-
 try{
 const date=$("attDate").value;
-
-const writes=currentStudents.map(s=>{
-const id=date+"_"+s.id;
-return setDoc(doc(db,"attendance",id),{
-date,
-studentId:s.id,
-studentName:s.name,
-classId:s.classId,
-status:attendanceState[s.id]||"H",
-updatedAt:serverTimestamp(),
-updatedBy:currentUser.uid
-},{merge:true});
-});
-
-if(navigator.onLine){
+const writes=currentStudents.map(s=>setDoc(doc(db,"attendance",date+"_"+s.id),{
+date,studentId:s.id,studentName:s.name,classId:s.classId,
+status:attendanceState[s.id]||"H",updatedAt:serverTimestamp(),updatedBy:currentUser.uid
+},{merge:true}));
 await Promise.all(writes);
 $("syncMsg").textContent="Presensi disimpan ke Firebase.";
-}else{
-writes.forEach(p=>p.catch(e=>console.error(e)));
-$("syncMsg").textContent="Presensi disimpan di perangkat dan menunggu koneksi internet untuk sinkronisasi.";
-}
-
-}catch(e){
-$("syncMsg").textContent="Gagal menyimpan: "+friendly(e);
-}finally{
-$("saveAttendance").disabled=false;
-}
+}catch(e){$("syncMsg").textContent="Gagal menyimpan: "+friendly(e);}
+finally{$("saveAttendance").disabled=false;}
 };
 
 $("addStudent").onclick=async()=>{
 if(!isAdmin())return;
-
-const name=$("studentName").value.trim();
-const gender=$("studentGender").value;
-const classId=$("studentClass").value;
-
-if(!name){
-alert("Isi nama santri terlebih dahulu.");
-return;
-}
-
-if(!gender){
-alert("Pilih jenis kelamin santri.");
-return;
-}
-
+const name=$("studentName").value.trim(),gender=$("studentGender").value,classId=$("studentClass").value;
+if(!name){alert("Isi nama santri terlebih dahulu.");return;}
+if(!gender){alert("Pilih jenis kelamin santri.");return;}
 try{
-await addDoc(collection(db,"students"),{
-name,
-gender,
-classId,
-createdAt:serverTimestamp()
-});
-
-$("studentName").value="";
-$("studentGender").value="";
-
-// Tampilkan kelas santri yang baru ditambahkan
-$("attClass").value=classId;
-await loadAttendance();
-
+await addDoc(collection(db,"students"),{name,gender,classId,createdAt:serverTimestamp()});
+$("studentName").value="";$("studentGender").value="";
+$("attClass").value=classId;await loadAttendance();
 $("syncMsg").textContent="Santri berhasil ditambahkan.";
-
-}catch(e){
-alert("Gagal menambah santri: "+friendly(e));
-}
+}catch(e){alert("Gagal menambah santri: "+friendly(e));}
 };
 
 $("teacherClasses").innerHTML=classes.map(([id,name])=>
@@ -389,29 +358,134 @@ $("teacherClasses").innerHTML=classes.map(([id,name])=>
 ).join("");
 
 $("assignTeacher").onclick=async()=>{
-const uid=$("teacherUid").value.trim();
-const email=$("teacherEmail").value.trim();
+const uid=$("teacherUid").value.trim(),email=$("teacherEmail").value.trim();
 const selected=[...$("teacherClasses").querySelectorAll("input:checked")].map(x=>x.value);
-
-if(!uid||!selected.length){
-msg($("teacherMsg"),"Isi UID dan pilih minimal satu kelas.",true);
-return;
-}
-
+if(!uid||!selected.length){msg($("teacherMsg"),"Isi UID dan pilih minimal satu kelas.",true);return;}
 try{
-await setDoc(doc(db,"users",uid),{
-role:"guru",
-email,
-classes:selected,
-updatedAt:serverTimestamp()
-},{merge:true});
-
+await setDoc(doc(db,"users",uid),{role:"guru",email,classes:selected,updatedAt:serverTimestamp()},{merge:true});
 msg($("teacherMsg"),"Penugasan guru berhasil disimpan.");
-
-}catch(e){
-msg($("teacherMsg"),"Gagal menyimpan: "+friendly(e),true);
-}
+}catch(e){msg($("teacherMsg"),"Gagal menyimpan: "+friendly(e),true);}
 };
+
+async function loadReportData(){
+if(!currentUser||!profile)return;
+const selected=$("reportClass").value,month=$("reportMonth").value;
+if(!selected||!month)return;
+$("reportMsg").classList.add("hidden");
+$("reportTeacher").textContent="Nama guru: "+(profile.name||currentUser.email||"Pengguna")+" • Kelas: "+className(selected);
+try{
+const ids=queryClassIds(selected);
+const studentQuery=query(collection(db,"students"),where("classId","in",ids));
+const studentSnap=await getDocs(studentQuery);
+const students=studentSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||"").localeCompare(b.name||"","id"));
+let male=0,female=0,present=0,records=0;
+students.forEach(s=>{if(s.gender==="L")male++;if(s.gender==="P")female++;});
+const firstDate=month+"-01";
+const [year,monthNum]=month.split("-").map(Number);
+const lastDate=year+"-"+String(monthNum).padStart(2,"0")+"-"+String(new Date(year,monthNum,0).getDate()).padStart(2,"0");
+for(const classId of ids){
+const attendanceQuery=query(collection(db,"attendance"),where("classId","==",classId));
+const attendanceSnap=await getDocs(attendanceQuery);
+attendanceSnap.forEach(d=>{
+const a=d.data();
+if(a.date>=firstDate&&a.date<=lastDate&&["H","I","S","A"].includes(a.status)){
+records++;if(a.status==="H")present++;
+}
+});
+}
+const percent=records?Math.round(present/records*100):0;
+reportStats={students,male,female,present,records,percent};
+$("maleTotal").textContent=male;$("femaleTotal").textContent=female;
+$("studentTotal").textContent=students.length;$("presentTotal").textContent=present;
+$("recordTotal").textContent=records;$("attendancePercent").textContent=percent+"%";
+$("reportNames").textContent=students.length
+? "Daftar santri: "+students.map(s=>s.name).join(", ")
+:"Belum ada data santri pada kelas ini.";
+
+const reportId=month+"_"+selected+"_"+currentUser.uid;
+const saved=await getDoc(doc(db,"monthlyReports",reportId));
+if(saved.exists()){
+const r=saved.data();
+$("materialWriting").value=r.materialWriting||"";
+$("materialReading").value=r.materialReading||"";
+$("materialSurah").value=r.materialSurah||"";
+$("materialPrayer").value=r.materialPrayer||"";
+$("materialDalil").value=r.materialDalil||"";
+$("materialOther").value=r.materialOther||"";
+$("materialPercent").value=r.materialPercent??"";
+$("midStatus").value=r.midStatus||"Belum";
+$("linkStatus").value=r.linkStatus||"Belum";
+$("reportProblem").value=r.reportProblem||"";
+}else{
+["materialWriting","materialReading","materialSurah","materialPrayer","materialDalil","materialOther","materialPercent","reportProblem"].forEach(id=>$(id).value="");
+$("midStatus").value="Belum";$("linkStatus").value="Belum";
+}
+}catch(e){
+msg($("reportMsg"),"Gagal memuat data laporan: "+friendly(e),true);
+}
+}
+
+$("saveReport").onclick=async()=>{
+if(!currentUser||!profile)return;
+const month=$("reportMonth").value,selected=$("reportClass").value;
+if(!month||!selected){msg($("reportMsg"),"Pilih bulan dan kelas terlebih dahulu.",true);return;}
+const materialPercent=$("materialPercent").value;
+if(materialPercent!==""&&(Number(materialPercent)<0||Number(materialPercent)>100)){
+msg($("reportMsg"),"Pencapaian materi harus antara 0 sampai 100.",true);return;
+}
+$("saveReport").disabled=true;
+try{
+const reportId=month+"_"+selected+"_"+currentUser.uid;
+const data={
+month,classId:selected,className:className(selected),
+teacherId:currentUser.uid,teacherName:profile.name||currentUser.email||"Guru",
+studentTotal:reportStats.students.length,maleTotal:reportStats.male,femaleTotal:reportStats.female,
+studentNames:reportStats.students.map(s=>s.name),
+presentTotal:reportStats.present,attendanceRecords:reportStats.records,
+attendancePercent:reportStats.percent,
+materialWriting:$("materialWriting").value.trim(),
+materialReading:$("materialReading").value.trim(),
+materialSurah:$("materialSurah").value.trim(),
+materialPrayer:$("materialPrayer").value.trim(),
+materialDalil:$("materialDalil").value.trim(),
+materialOther:$("materialOther").value.trim(),
+materialPercent:materialPercent===""?null:Number(materialPercent),
+midStatus:$("midStatus").value,linkStatus:$("linkStatus").value,
+reportProblem:$("reportProblem").value.trim(),
+updatedAt:serverTimestamp()
+};
+await setDoc(doc(db,"monthlyReports",reportId),data,{merge:true});
+msg($("reportMsg"),"Laporan bulanan berhasil disimpan.");
+await loadReportsList();
+}catch(e){msg($("reportMsg"),"Gagal menyimpan laporan: "+friendly(e),true);}
+finally{$("saveReport").disabled=false;}
+};
+
+async function loadReportsList(){
+if(!currentUser||!profile)return;
+$("reportsList").textContent="Memuat laporan…";
+try{
+let q;
+if(isAdmin()){
+q=query(collection(db,"monthlyReports"));
+}else{
+q=query(collection(db,"monthlyReports"),where("teacherId","==",currentUser.uid));
+}
+const snap=await getDocs(q);
+if(snap.empty){$("reportsList").textContent="Belum ada laporan tersimpan.";return;}
+const reports=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.month||"").localeCompare(a.month||""));
+const wrap=document.createElement("div");
+reports.forEach(r=>{
+const item=document.createElement("div");item.className="report-item";
+const title=document.createElement("strong");
+title.textContent=(r.month||"Tanpa bulan")+" — "+(r.className||className(r.classId));
+const detail=document.createElement("div");detail.className="small";
+detail.textContent=(r.teacherName||"Guru")+" • Kehadiran "+(r.attendancePercent??0)+"% • Materi "+(r.materialPercent??"-")+"%";
+item.append(title,detail);wrap.append(item);
+});
+$("reportsList").replaceChildren(wrap);
+}catch(e){$("reportsList").textContent="Gagal memuat daftar laporan: "+friendly(e);}
+}
 
 if("serviceWorker" in navigator){
 window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
