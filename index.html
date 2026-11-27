@@ -207,14 +207,39 @@ $("saveAttendance").onclick=async()=>{
  }catch(e){$("syncMsg").textContent="Gagal menyimpan: "+friendly(e)}
  finally{$("saveAttendance").disabled=false}
 };
-$("addStudent").onclick=async()=>{
+$($("addStudent").onclick=async()=>{
  if(!isAdmin())return;
- const name=$("studentName").value.trim(),classId=$("studentClass").value;
- if(!name){alert("Isi nama santri terlebih dahulu.");return}
- try{await addDoc(collection(db,"students"),{name,classId,createdAt:serverTimestamp()});$("studentName").value="";await loadAttendance();$("studentsList").textContent="Santri berhasil ditambahkan."}
- catch(e){alert("Gagal menambah santri: "+friendly(e))}
-};
-$("teacherClasses").innerHTML=classes.map(([id,name])=>`<label style="font-weight:400"><input type="checkbox" value="${id}" style="width:auto;margin-right:7px"> ${name}</label>`).join("");
+
+ const name=$("studentName").value.trim();
+ const gender=$("studentGender").value;
+ const classId=$("studentClass").value;
+
+ if(!name){
+  alert("Isi nama santri terlebih dahulu.");
+  return;
+ }
+
+ if(!gender){
+  alert("Pilih jenis kelamin santri.");
+  return;
+ }
+
+ try{
+  await addDoc(collection(db,"students"),{
+   name,
+   gender,
+   classId,
+   createdAt:serverTimestamp()
+  });
+
+  $("studentName").value="";
+  $("studentGender").value="";
+  await loadAttendance();
+  $("studentsList").textContent="Santri berhasil ditambahkan.";
+ }catch(e){
+  alert("Gagal menambah santri: "+friendly(e));
+ }
+};$("teacherClasses").innerHTML=classes.map(([id,name])=>`<label style="font-weight:400"><input type="checkbox" value="${id}" style="width:auto;margin-right:7px"> ${name}</label>`).join("");
 $("assignTeacher").onclick=async()=>{
  const uid=$("teacherUid").value.trim(),email=$("teacherEmail").value.trim();
  const selected=[...$("teacherClasses").querySelectorAll("input:checked")].map(x=>x.value);
