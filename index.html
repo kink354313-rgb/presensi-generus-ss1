@@ -135,7 +135,7 @@ function friendly(e){return e?.code==="auth/invalid-credential"?"Email atau kata
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
  document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));
  ["attendanceTab","studentsTab","teachersTab"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab));
- if(b.dataset.tab==="studentsTab") loadStudents();
+ if(b.dataset.tab==="studentsTab") loadAttendance();
 });
 onAuthStateChanged(auth,async user=>{
  currentUser=user;profile=null;
