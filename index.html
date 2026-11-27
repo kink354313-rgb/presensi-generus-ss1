@@ -61,9 +61,22 @@ td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inli
 <section id="studentsTab" class="panel hidden">
 <h2>Data santri</h2>
 <div id="studentAdminOnly" class="hidden">
-<label>Nama santri</label><input id="studentName" placeholder="Nama lengkap">
-<label>Kelas asal</label><select id="studentClass"></select>
-<button id="addStudent" style="margin-top:12px">Tambah santri</button>
+<label>Nama santri</label>
+<input id="studentName" placeholder="Nama lengkap">
+
+<label>Jenis kelamin</label>
+<select id="studentGender">
+  <option value="">Pilih jenis kelamin</option>
+  <option value="L">Laki-laki</option>
+  <option value="P">Perempuan</option>
+</select>
+
+<label>Kelas asal</label>
+<select id="studentClass"></select>
+
+<button id="addStudent" style="margin-top:12px">
+  Tambah santri
+</button>
 </div>
 <div id="studentsList" class="small" style="margin-top:12px">Pilih kelas pada tab Presensi untuk melihat data.</div>
 </section>
