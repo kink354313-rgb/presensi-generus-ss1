@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="id">
 <head>
@@ -66,17 +67,15 @@ td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inli
 
 <label>Jenis kelamin</label>
 <select id="studentGender">
-  <option value="">Pilih jenis kelamin</option>
-  <option value="L">Laki-laki</option>
-  <option value="P">Perempuan</option>
+<option value="">Pilih jenis kelamin</option>
+<option value="L">Laki-laki</option>
+<option value="P">Perempuan</option>
 </select>
 
 <label>Kelas asal</label>
 <select id="studentClass"></select>
 
-<button id="addStudent" style="margin-top:12px">
-  Tambah santri
-</button>
+<button id="addStudent" style="margin-top:12px">Tambah santri</button>
 </div>
 <div id="studentsList" class="small" style="margin-top:12px">Pilih kelas pada tab Presensi untuk melihat data.</div>
 </section>
@@ -93,160 +92,331 @@ td select{min-width:120px;padding:8px}.student{font-weight:650}.tag{display:inli
 </section>
 <div id="status" class="small"></div>
 </main>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, addDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCiw4ega9_tu1ts9yAcS4kVIBfdGG6NoRI",
-  authDomain: "presensi-generus-ss1.firebaseapp.com",
-  projectId: "presensi-generus-ss1",
-  storageBucket: "presensi-generus-ss1.firebasestorage.app",
-  messagingSenderId: "927375414893",
-  appId: "1:927375414893:web:379115b932b020b5021164",
-  measurementId: "G-539FDZ7J9D"
+apiKey: "AIzaSyCiw4ega9_tu1ts9yAcS4kVIBfdGG6NoRI",
+authDomain: "presensi-generus-ss1.firebaseapp.com",
+projectId: "presensi-generus-ss1",
+storageBucket: "presensi-generus-ss1.firebasestorage.app",
+messagingSenderId: "927375414893",
+appId: "1:927375414893:web:379115b932b020b5021164",
+measurementId: "G-539FDZ7J9D"
 };
+
 const classes = [
- ["paud-sd1","PAUD / SD 1"],["sd2","SD 2"],["sd3","SD 3"],["sd4","SD 4"],["sd5","SD 5"],["sd6","SD 6"],
- ["praremaja","Praremaja (SMP)"],["remaja","Remaja (SMA)"],["pranikah","Pranikah"],["muda-mudi","Muda-Mudi (gabungan)"]
+["paud-sd1","PAUD / SD 1"],["sd2","SD 2"],["sd3","SD 3"],["sd4","SD 4"],["sd5","SD 5"],["sd6","SD 6"],
+["praremaja","Praremaja (SMP)"],["remaja","Remaja (SMA)"],["pranikah","Pranikah"],["muda-mudi","Muda-Mudi (gabungan)"]
 ];
 const combined = ["praremaja","remaja","pranikah"];
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+
 let currentUser=null, profile=null, currentStudents=[], attendanceState={};
 const $ = id => document.getElementById(id);
 const className = id => classes.find(c=>c[0]===id)?.[1] || id;
 const isAdmin = () => profile?.role === "admin";
-function msg(el,text,error=false){el.textContent=text;el.classList.remove("hidden");el.classList.toggle("error",error)}
-function fillClasses(sel, includeCombined=true){
- sel.innerHTML="";
- classes.filter(c=>includeCombined || c[0]!=="muda-mudi").forEach(([id,name])=>{let o=document.createElement("option");o.value=id;o.textContent=name;sel.append(o)});
+
+function msg(el,text,error=false){
+el.textContent=text;
+el.classList.remove("hidden");
+el.classList.toggle("error",error);
 }
-fillClasses($("attClass"));fillClasses($("studentClass"),false);
+
+function fillClasses(sel, includeCombined=true){
+sel.innerHTML="";
+classes.filter(c=>includeCombined || c[0]!=="muda-mudi").forEach(([id,name])=>{
+let o=document.createElement("option");
+o.value=id;
+o.textContent=name;
+sel.append(o);
+});
+}
+
+fillClasses($("attClass"));
+fillClasses($("studentClass"),false);
 $("attDate").value=new Date().toLocaleDateString("en-CA");
+
 $("loginBtn").onclick=async()=>{
- try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value)}
- catch(e){msg($("loginMsg"),"Gagal masuk: "+friendly(e),true)}
+try{
+await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
+}catch(e){
+msg($("loginMsg"),"Gagal masuk: "+friendly(e),true);
+}
 };
+
 $("logoutBtn").onclick=()=>signOut(auth);
-function friendly(e){return e?.code==="auth/invalid-credential"?"Email atau kata sandi tidak sesuai.":e?.message||"Terjadi kesalahan."}
+
+function friendly(e){
+return e?.code==="auth/invalid-credential"?"Email atau kata sandi tidak sesuai.":e?.message||"Terjadi kesalahan.";
+}
+
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
- document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));
- ["attendanceTab","studentsTab","teachersTab"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab));
- if(b.dataset.tab==="studentsTab") loadAttendance();
+document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));
+["attendanceTab","studentsTab","teachersTab"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab));
+if(b.dataset.tab==="studentsTab") loadAttendance();
 });
+
 onAuthStateChanged(auth,async user=>{
- currentUser=user;profile=null;
- if(!user){$("loginPanel").classList.remove("hidden");$("appPanel").classList.add("hidden");return}
- try{
-  const snap=await getDoc(doc(db,"users",user.uid));
-  if(!snap.exists()){await signOut(auth);msg($("loginMsg"),"Profil akun belum dibuat oleh admin. Hubungi admin.",true);return}
-  profile=snap.data();
-  $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");
-  $("welcome").textContent=profile.name||user.email||"Pengguna";
-  $("roleInfo").textContent=profile.role==="admin"?"Administrator":"Guru";
-  $("teachersTabBtn").classList.toggle("hidden",!isAdmin());
-  $("studentsTabBtn").classList.toggle("hidden",!isAdmin());
-  $("studentAdminOnly").classList.toggle("hidden",!isAdmin());
-  const allowed=profile.classes||[];
-  $("attClass").innerHTML="";
-  classes.filter(([id])=>isAdmin()||allowed.includes(id)).forEach(([id,name])=>{let o=document.createElement("option");o.value=id;o.textContent=name;$("attClass").append(o)});
-  $("attHint").textContent=isAdmin()?"Admin dapat memilih semua kelas.":"Akses kelas Anda: "+allowed.map(className).join(", ");
-  $("syncMsg").textContent=navigator.onLine?"Terhubung. Perubahan akan disinkronkan ke Firebase.":"Sedang offline. Perubahan tersimpan di perangkat dan akan disinkronkan saat online.";
-  await loadAttendance();
- }catch(e){msg($("status"),"Tidak dapat membaca profil atau database: "+friendly(e),true)}
+currentUser=user;
+profile=null;
+
+if(!user){
+$("loginPanel").classList.remove("hidden");
+$("appPanel").classList.add("hidden");
+return;
+}
+
+try{
+const snap=await getDoc(doc(db,"users",user.uid));
+if(!snap.exists()){
+await signOut(auth);
+msg($("loginMsg"),"Profil akun belum dibuat oleh admin. Hubungi admin.",true);
+return;
+}
+
+profile=snap.data();
+$("loginPanel").classList.add("hidden");
+$("appPanel").classList.remove("hidden");
+$("welcome").textContent=profile.name||user.email||"Pengguna";
+$("roleInfo").textContent=profile.role==="admin"?"Administrator":"Guru";
+$("teachersTabBtn").classList.toggle("hidden",!isAdmin());
+$("studentsTabBtn").classList.toggle("hidden",!isAdmin());
+$("studentAdminOnly").classList.toggle("hidden",!isAdmin());
+
+const allowed=profile.classes||[];
+$("attClass").innerHTML="";
+classes.filter(([id])=>isAdmin()||allowed.includes(id)).forEach(([id,name])=>{
+let o=document.createElement("option");
+o.value=id;
+o.textContent=name;
+$("attClass").append(o);
 });
+
+$("attHint").textContent=isAdmin()?"Admin dapat memilih semua kelas.":"Akses kelas Anda: "+allowed.map(className).join(", ");
+$("syncMsg").textContent=navigator.onLine?"Terhubung. Perubahan akan disinkronkan ke Firebase.":"Sedang offline. Perubahan tersimpan di perangkat dan akan disinkronkan saat online.";
+await loadAttendance();
+
+}catch(e){
+msg($("status"),"Tidak dapat membaca profil atau database: "+friendly(e),true);
+}
+});
+
 window.addEventListener("online",()=>{$("syncMsg").textContent="Internet tersambung. Data lokal sedang disinkronkan."});
 window.addEventListener("offline",()=>{$("syncMsg").textContent="Offline. Data tersimpan sementara di perangkat."});
-$("attClass").onchange=loadAttendance;$("attDate").onchange=loadAttendance;
-function queryClassIds(selected){return selected==="muda-mudi"?combined:[selected]}
+
+$("attClass").onchange=loadAttendance;
+$("attDate").onchange=loadAttendance;
+
+function queryClassIds(selected){
+return selected==="muda-mudi"?combined:[selected];
+}
+
 async function loadAttendance(){
- if(!currentUser||!profile)return;
- const selected=$("attClass").value;if(!selected){$("attendanceArea").textContent="Belum ada kelas yang ditugaskan.";return}
- try{
-  const ids=queryClassIds(selected);
-  const q=query(collection(db,"students"),where("classId","in",ids));
-  const snap=await getDocs(q);currentStudents=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name,"id"));
-  const date=$("attDate").value;attendanceState={};
-  if(currentStudents.length){
-   for(const classId of ids){
-    const aq=query(collection(db,"attendance"),where("classId","==",classId));
-    const as=await getDocs(aq);
-    as.forEach(d=>{const a=d.data();if(a.date===date)attendanceState[a.studentId]=a.status});
-   }
-  }
-  renderAttendance();$("studentsList").textContent=currentStudents.length?currentStudents.map(s=>s.name+" — "+className(s.classId)).join("\n"):"Belum ada data santri pada kelas ini.";
- }catch(e){$("attendanceArea").textContent="Gagal memuat data: "+friendly(e);$("syncMsg").textContent="Periksa koneksi dan Rules Firestore."}
+if(!currentUser||!profile)return;
+
+const selected=$("attClass").value;
+if(!selected){
+$("attendanceArea").textContent="Belum ada kelas yang ditugaskan.";
+return;
 }
+
+try{
+const ids=queryClassIds(selected);
+const q=query(collection(db,"students"),where("classId","in",ids));
+const snap=await getDocs(q);
+
+currentStudents=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name,"id"));
+
+const date=$("attDate").value;
+attendanceState={};
+
+if(currentStudents.length){
+for(const classId of ids){
+const aq=query(collection(db,"attendance"),where("classId","==",classId));
+const as=await getDocs(aq);
+as.forEach(d=>{
+const a=d.data();
+if(a.date===date)attendanceState[a.studentId]=a.status;
+});
+}
+}
+
+renderAttendance();
+
+$("studentsList").textContent=currentStudents.length
+?currentStudents.map(s=>s.name+" — "+(s.gender==="L"?"Laki-laki":s.gender==="P"?"Perempuan":"Belum diisi")+" — "+className(s.classId)).join("\n")
+:"Belum ada data santri pada kelas ini.";
+
+}catch(e){
+$("attendanceArea").textContent="Gagal memuat data: "+friendly(e);
+$("syncMsg").textContent="Periksa koneksi dan Rules Firestore.";
+}
+}
+
 function renderAttendance(){
- if(!currentStudents.length){$("attendanceArea").textContent="Belum ada santri di kelas ini. Admin dapat menambahkan melalui tab Data santri.";return}
- const table=document.createElement("table");const head=document.createElement("tr");
- ["Nama","Kelas asal","Kehadiran"].forEach(t=>{let th=document.createElement("th");th.textContent=t;head.append(th)});const thead=document.createElement("thead");thead.append(head);table.append(thead);
- const body=document.createElement("tbody");
- currentStudents.forEach(s=>{
-  const tr=document.createElement("tr");
-  [s.name,className(s.classId)].forEach(v=>{let td=document.createElement("td");td.textContent=v;tr.append(td)});
-  const td=document.createElement("td"),sel=document.createElement("select");
-  [["H","Hadir"],["I","Izin"],["S","Sakit"],["A","Tidak hadir"]].forEach(([v,n])=>{let o=document.createElement("option");o.value=v;o.textContent=n;sel.append(o)});
-  sel.value=attendanceState[s.id]||"H";sel.onchange=()=>attendanceState[s.id]=sel.value;td.append(sel);tr.append(td);body.append(tr)
- });table.append(body);$("attendanceArea").replaceChildren(table);
+if(!currentStudents.length){
+$("attendanceArea").textContent="Belum ada santri di kelas ini. Admin dapat menambahkan melalui tab Data santri.";
+return;
 }
+
+const table=document.createElement("table");
+const head=document.createElement("tr");
+
+["Nama","Kelas asal","Kehadiran"].forEach(t=>{
+let th=document.createElement("th");
+th.textContent=t;
+head.append(th);
+});
+
+const thead=document.createElement("thead");
+thead.append(head);
+table.append(thead);
+
+const body=document.createElement("tbody");
+
+currentStudents.forEach(s=>{
+const tr=document.createElement("tr");
+
+[s.name,className(s.classId)].forEach(v=>{
+let td=document.createElement("td");
+td.textContent=v;
+tr.append(td);
+});
+
+const td=document.createElement("td");
+const sel=document.createElement("select");
+
+[["H","Hadir"],["I","Izin"],["S","Sakit"],["A","Tidak hadir"]].forEach(([v,n])=>{
+let o=document.createElement("option");
+o.value=v;
+o.textContent=n;
+sel.append(o);
+});
+
+sel.value=attendanceState[s.id]||"H";
+sel.onchange=()=>attendanceState[s.id]=sel.value;
+td.append(sel);
+tr.append(td);
+body.append(tr);
+});
+
+table.append(body);
+$("attendanceArea").replaceChildren(table);
+}
+
 $("saveAttendance").onclick=async()=>{
- if(!currentStudents.length)return;
- $("saveAttendance").disabled=true;
- try{
-  const date=$("attDate").value;
-  const writes=currentStudents.map(s=>{
-   const id=date+"_"+s.id;
-   return setDoc(doc(db,"attendance",id),{date,studentId:s.id,studentName:s.name,classId:s.classId,status:attendanceState[s.id]||"H",updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
-  });
-  if(navigator.onLine){await Promise.all(writes);$("syncMsg").textContent="Presensi disimpan ke Firebase.";}
-  else {writes.forEach(p=>p.catch(e=>console.error(e)));$("syncMsg").textContent="Presensi disimpan di perangkat dan menunggu koneksi internet untuk sinkronisasi.";}
- }catch(e){$("syncMsg").textContent="Gagal menyimpan: "+friendly(e)}
- finally{$("saveAttendance").disabled=false}
+if(!currentStudents.length)return;
+
+$("saveAttendance").disabled=true;
+
+try{
+const date=$("attDate").value;
+
+const writes=currentStudents.map(s=>{
+const id=date+"_"+s.id;
+return setDoc(doc(db,"attendance",id),{
+date,
+studentId:s.id,
+studentName:s.name,
+classId:s.classId,
+status:attendanceState[s.id]||"H",
+updatedAt:serverTimestamp(),
+updatedBy:currentUser.uid
+},{merge:true});
+});
+
+if(navigator.onLine){
+await Promise.all(writes);
+$("syncMsg").textContent="Presensi disimpan ke Firebase.";
+}else{
+writes.forEach(p=>p.catch(e=>console.error(e)));
+$("syncMsg").textContent="Presensi disimpan di perangkat dan menunggu koneksi internet untuk sinkronisasi.";
+}
+
+}catch(e){
+$("syncMsg").textContent="Gagal menyimpan: "+friendly(e);
+}finally{
+$("saveAttendance").disabled=false;
+}
 };
+
 $("addStudent").onclick=async()=>{
- if(!isAdmin())return;
+if(!isAdmin())return;
 
- const name=$("studentName").value.trim();
- const gender=$("studentGender").value;
- const classId=$("studentClass").value;
+const name=$("studentName").value.trim();
+const gender=$("studentGender").value;
+const classId=$("studentClass").value;
 
- if(!name){
-  alert("Isi nama santri terlebih dahulu.");
-  return;
- }
+if(!name){
+alert("Isi nama santri terlebih dahulu.");
+return;
+}
 
- if(!gender){
-  alert("Pilih jenis kelamin santri.");
-  return;
- }
+if(!gender){
+alert("Pilih jenis kelamin santri.");
+return;
+}
 
- try{
-  await addDoc(collection(db,"students"),{
-   name,
-   gender,
-   classId,
-   createdAt:serverTimestamp()
-  });
+try{
+await addDoc(collection(db,"students"),{
+name,
+gender,
+classId,
+createdAt:serverTimestamp()
+});
 
-  $("studentName").value="";
-  $("studentGender").value="";
-  await loadAttendance();
-  $("studentsList").textContent="Santri berhasil ditambahkan.";
- }catch(e){
-  alert("Gagal menambah santri: "+friendly(e));
- }
-};$("teacherClasses").innerHTML=classes.map(([id,name])=>`<label style="font-weight:400"><input type="checkbox" value="${id}" style="width:auto;margin-right:7px"> ${name}</label>`).join("");
-$("assignTeacher").onclick=async()=>{
- const uid=$("teacherUid").value.trim(),email=$("teacherEmail").value.trim();
- const selected=[...$("teacherClasses").querySelectorAll("input:checked")].map(x=>x.value);
- if(!uid||!selected.length){msg($("teacherMsg"),"Isi UID dan pilih minimal satu kelas.",true);return}
- try{await setDoc(doc(db,"users",uid),{role:"guru",email,classes:selected,updatedAt:serverTimestamp()},{merge:true});msg($("teacherMsg"),"Penugasan guru berhasil disimpan.")}
- catch(e){msg($("teacherMsg"),"Gagal menyimpan: "+friendly(e),true)}
+$("studentName").value="";
+$("studentGender").value="";
+
+// Tampilkan kelas santri yang baru ditambahkan
+$("attClass").value=classId;
+await loadAttendance();
+
+$("syncMsg").textContent="Santri berhasil ditambahkan.";
+
+}catch(e){
+alert("Gagal menambah santri: "+friendly(e));
+}
 };
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+
+$("teacherClasses").innerHTML=classes.map(([id,name])=>
+`<label style="font-weight:400"><input type="checkbox" value="${id}" style="width:auto;margin-right:7px"> ${name}</label>`
+).join("");
+
+$("assignTeacher").onclick=async()=>{
+const uid=$("teacherUid").value.trim();
+const email=$("teacherEmail").value.trim();
+const selected=[...$("teacherClasses").querySelectorAll("input:checked")].map(x=>x.value);
+
+if(!uid||!selected.length){
+msg($("teacherMsg"),"Isi UID dan pilih minimal satu kelas.",true);
+return;
+}
+
+try{
+await setDoc(doc(db,"users",uid),{
+role:"guru",
+email,
+classes:selected,
+updatedAt:serverTimestamp()
+},{merge:true});
+
+msg($("teacherMsg"),"Penugasan guru berhasil disimpan.");
+
+}catch(e){
+msg($("teacherMsg"),"Gagal menyimpan: "+friendly(e),true);
+}
+};
+
+if("serviceWorker" in navigator){
+window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
 </script>
-</body></html>
+</body>
+</html>
